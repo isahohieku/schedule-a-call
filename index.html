@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheduled Calls Proposal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --talk-cyan: #00B8FF;
+      --talk-cyan-soft: #CEF1FF;
+      --talk-cyan-glow: rgba(0, 184, 255, 0.35);
+      --talk-navy: #06025C;
+      --talk-navy-dark: #030138;
+      --talk-sapphire: #0E0E89;
+      --talk-space-80: #00015E;
+      --talk-grey-bg: #F4F8FA;
+      --talk-card-bg: #FFFFFF;
+      --talk-text-dark: #06025C;
+      --talk-text-muted: #64748B;
+      --talk-green: #00B67A;
+      --talk-purple: #7C3AED;
+      --talk-amber: #F59E0B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--talk-navy-dark);
+      color: #FFFFFF;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    header {
+      height: 56px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(6, 2, 92, 0.6);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--talk-cyan), #0077B6);
+      color: var(--talk-navy-dark);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .deck-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .meta-target {
+      color: var(--talk-cyan);
+      font-weight: 600;
+    }
+
+    /* Slide Container */
+    .deck-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 40px 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      transform: translateX(60px);
+      pointer-events: none;
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .slide.prev {
+      transform: translateX(-60px);
+    }
+
+    /* Cover Slide */
+    .cover-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      align-items: center;
+      gap: 48px;
+      height: 100%;
+    }
+
+    .tagline-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 184, 255, 0.12);
+      border: 1px solid rgba(0, 184, 255, 0.3);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--talk-cyan);
+      margin-bottom: 20px;
+    }
+
+    h1.hero-title {
+      font-size: 3.2rem;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      text-wrap: balance;
+      background: linear-gradient(135deg, #FFFFFF 40%, var(--talk-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.hero-subtitle {
+      font-size: 1.25rem;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 32px;
+      max-width: 580px;
+    }
+
+    .hero-metrics-strip {
+      display: flex;
+      gap: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .hero-metric-item h4 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--talk-cyan);
+    }
+
+    .hero-metric-item p {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .image-frame {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.12);
+      transition: transform 0.3s ease;
+    }
+
+    .image-frame:hover {
+      transform: translateY(-4px);
+    }
+
+    .image-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Standard Slide Layouts */
+    .slide-header {
+      margin-bottom: 28px;
+    }
+
+    .slide-category {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--talk-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .slide-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      text-wrap: balance;
+    }
+
+    .slide-desc {
+      font-size: 1.05rem;
+      color: rgba(255, 255, 255, 0.75);
+      margin-top: 8px;
+      max-width: 800px;
+    }
+
+    /* 3-Column Cards Grid */
+    .segments-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      flex: 1;
+      align-items: stretch;
+    }
+
+    .segment-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .segment-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(0, 184, 255, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .segment-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+
+    .badge-family {
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-business {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .badge-embassy {
+      background: rgba(0, 184, 255, 0.15);
+      color: var(--talk-cyan);
+      border: 1px solid rgba(0, 184, 255, 0.3);
+    }
+
+    .segment-card h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .segment-card p.segment-problem {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+      margin-bottom: 16px;
+      flex: 1;
+    }
+
+    .segment-img-thumb {
+      height: 140px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .segment-img-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .segment-solution-box {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      border-left: 3px solid var(--talk-cyan);
+    }
+
+    .segment-solution-box strong {
+      color: var(--talk-cyan);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* Interactive Prototype Slide */
+    .proto-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      height: 100%;
+    }
+
+    .interactive-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .segment-tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 16px 20px;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #FFFFFF;
+      transition: all 0.25s ease;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .segment-tab-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(0, 184, 255, 0.3);
+    }
+
+    .segment-tab-btn.active {
+      background: linear-gradient(135deg, rgba(0, 184, 255, 0.2), rgba(14, 14, 137, 0.4));
+      border-color: var(--talk-cyan);
+      box-shadow: 0 0 20px rgba(0, 184, 255, 0.25);
+    }
+
+    .tab-info h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .tab-info p {
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    .tab-icon {
+      font-size: 1.5rem;
+      padding-left: 12px;
+    }
+
+    /* Smartphone Device Frame */
+    .phone-mockup {
+      width: 320px;
+      height: 600px;
+      background: #000000;
+      border-radius: 40px;
+      border: 4px solid #334155;
+      box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .phone-speaker {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 18px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 10;
+    }
+
+    .phone-screen {
+      flex: 1;
+      background: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 40px 16px 16px;
+      color: var(--talk-text-dark);
+    }
+
+    .app-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .app-logo {
+      font-weight: 800;
+      color: var(--talk-navy);
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-balance-pill {
+      background: #E2F4FD;
+      color: #0284C7;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .app-search-bar {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    /* The Simulated Compose Card */
+    .mock-card {
+      border-radius: 14px;
+      padding: 16px;
+      position: relative;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(6, 2, 92, 0.08);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .mock-card.discovery {
+      background: linear-gradient(135deg, var(--talk-navy), var(--talk-sapphire));
+      color: #FFFFFF;
+    }
+
+    .mock-card.upcoming {
+      background: #FFFFFF;
+      border: 1.5px solid var(--talk-cyan-soft);
+      color: var(--talk-text-dark);
+    }
+
+    .mock-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .mock-pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    .mock-pill-cyan {
+      background: rgba(0, 184, 255, 0.2);
+      color: var(--talk-cyan);
+    }
+
+    .mock-pill-upcoming {
+      background: #E0F2FE;
+      color: #0369A1;
+    }
+
+    .mock-card-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+
+    .mock-card-desc {
+      font-size: 0.76rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 12px;
+    }
+
+    .mock-card.upcoming .mock-card-desc {
+      color: #64748B;
+    }
+
+    .mock-card-cta-row {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .mock-btn {
+      background: var(--talk-cyan);
+      color: var(--talk-space-80);
+      font-weight: 800;
+      font-size: 0.72rem;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 184, 255, 0.4);
+      font-family: inherit;
+    }
+
+    .upcoming-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .upcoming-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(0, 184, 255, 0.15);
+      color: var(--talk-navy);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .upcoming-details {
+      flex: 1;
+    }
+
+    .upcoming-details h5 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--talk-navy);
+    }
+
+    .upcoming-details p {
+      font-size: 0.7rem;
+      color: #64748B;
+    }
+
+    /* Data & Architecture Slide */
+    .metrics-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .metric-card-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .metric-card-box h3 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--talk-cyan);
+      margin-bottom: 6px;
+    }
+
+    .metric-card-box h3.label {
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+      text-wrap: balance;
+    }
+
+    .metric-card-box p {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.4;
+    }
+
+    .tech-table-wrap {
+      overflow-x: auto;
+    }
+
+    .tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .tech-table th {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 12px 18px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--talk-cyan);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tech-table td {
+      padding: 12px 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Roadmap Timeline */
+    .roadmap-cols {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .roadmap-phase {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phase-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      width: fit-content;
+    }
+
+    .phase-1 {
+      background: rgba(0, 184, 255, 0.15);
+      color: var(--talk-cyan);
+    }
+
+    .phase-2 {
+      background: rgba(124, 58, 237, 0.15);
+      color: #A78BFA;
+    }
+
+    .phase-3 {
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+    }
+
+    .roadmap-phase h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .roadmap-phase ul {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .roadmap-phase li {
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.75);
+      position: relative;
+      padding-left: 18px;
+      line-height: 1.4;
+    }
+
+    .roadmap-phase li::before {
+      content: "•";
+      color: var(--talk-cyan);
+      position: absolute;
+      left: 0;
+      font-weight: bold;
+    }
+
+    /* Speaker Notes Drawer */
+    .notes-drawer {
+      position: fixed;
+      bottom: 72px;
+      right: 32px;
+      width: 440px;
+      max-width: calc(100vw - 64px);
+      background: rgba(6, 2, 92, 0.96);
+      border: 1.5px solid var(--talk-cyan);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 24px rgba(0, 184, 255, 0.25);
+      transform: translateY(0);
+      opacity: 1;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+    }
+
+    .notes-drawer.minimized {
+      transform: translateY(calc(100% + 80px));
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .notes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .notes-header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notes-header h4 {
+      font-size: 0.82rem;
+      color: var(--talk-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    .notes-badge {
+      background: rgba(0, 184, 255, 0.2);
+      color: var(--talk-cyan);
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .notes-content {
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.9);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .notes-content strong {
+      color: var(--talk-cyan);
+    }
+
+    .btn-nav.active-notes {
+      background: rgba(0, 184, 255, 0.2);
+      border-color: var(--talk-cyan);
+      color: #FFFFFF;
+    }
+
+    /* Bottom Navigation Bar */
+    footer {
+      height: 60px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(6, 2, 92, 0.6);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .nav-buttons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-nav {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #FFFFFF;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-nav:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--talk-cyan);
+    }
+
+    .btn-nav.primary {
+      background: var(--talk-cyan);
+      color: var(--talk-navy-dark);
+      border-color: var(--talk-cyan);
+      font-weight: 700;
+    }
+
+    .slide-progress {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      padding: 0;
+    }
+
+    .progress-dot.active {
+      width: 24px;
+      border-radius: 999px;
+      background: var(--talk-cyan);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .slide,
+      .segment-card,
+      .image-frame,
+      .mock-card,
+      .notes-drawer,
+      .btn-nav,
+      .progress-dot {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="brand">
+      <span>Talk360</span>
+      <span class="brand-badge">Feature Proposal</span>
+    </div>
+    <div class="deck-meta">
+      <span>Feature: <strong>Scheduled Calls & Segmentation</strong></span>
+      <span>Audience: <strong class="meta-target">Product Department</strong></span>
+      <span>Target Release: <strong>TBD</strong></span>
+    </div>
+  </header>
+
+  <main class="deck-container">
+
+    <!-- SLIDE 1: Cover -->
+    <section class="slide active" data-slide="1">
+      <div class="cover-layout">
+        <div class="cover-text">
+          <div class="tagline-chip">
+            <span>✨</span> Feature Proposal & POC Walkthrough
+          </div>
+          <h1 class="hero-title">Talk360 Scheduled Calls</h1>
+          <p class="hero-subtitle">
+            Turning ad-hoc international calling into predictable, recurring habits — tailored to how each user already
+            told us they call: <strong>Family</strong>, <strong>Business</strong>, or <strong>Embassies</strong>.
+          </p>
+          <div class="hero-metrics-strip">
+            <div class="hero-metric-item">
+              <h4>3</h4>
+              <p>Segments Personalized</p>
+            </div>
+            <div class="hero-metric-item">
+              <h4>Zero</h4>
+              <p>New Backend Services</p>
+            </div>
+            <div class="hero-metric-item">
+              <h4>POC</h4>
+              <p>Already Running on Android</p>
+            </div>
+          </div>
+        </div>
+        <div class="image-frame"
+          style="height: 420px; max-height: calc(100vh - 240px); background: rgba(3, 1, 56, 0.6); display: flex; align-items: center; justify-content: center; padding: 10px;">
+          <img src="scheduled_calls_hero_1788454229687.jpg" alt="Talk360 Scheduled Calls Across Timezones"
+            style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: Problem & Strategic Imperative -->
+    <section class="slide" data-slide="2">
+      <div class="slide-header">
+        <div class="slide-category">Strategic Opportunity</div>
+        <h2 class="slide-title">The "Dormancy Leak": Why Cross-Border Callers Go Quiet</h2>
+        <p class="slide-desc">
+          International calling carries real mental overhead. Users know <em>who</em> they need to call, but timezone
+          friction and irregular schedules turn postponed calls into forgotten ones — and forgotten calls into dormant
+          balances.
+        </p>
+      </div>
+      <div class="segments-grid">
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-family">Time-Zone Friction</div>
+          <h3>The Mental Math Tax</h3>
+          <p class="segment-problem">
+            "Is it 8 PM in Lagos or 9 PM?" Callers delay because they don't want to catch loved ones asleep or clients
+            outside work hours. A delayed call is usually a call that never happens.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Talk360 Solution</strong>
+            Automated timezone conversion, plus a scheduled prompt at the recipient's local hour.
+          </div>
+        </div>
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-embassy">Narrow Operating Windows</div>
+          <h3>The Punctuality Crisis</h3>
+          <p class="segment-problem">
+            Embassies, consulates, and government desks often operate a two- to three-hour morning window. Miss it, and
+            a visa or legal process slips by a week.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Talk360 Solution</strong>
+            An exact-alarm reminder timed to the moment the desk opens.
+          </div>
+        </div>
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-business">Retention & Habit Loop</div>
+          <h3>From Reactive to Recurring</h3>
+          <p class="segment-problem">
+            Ad-hoc calling means ad-hoc top-ups. A recurring weekly slot — Sunday family dinner, Monday team sync —
+            turns Talk360 into a standing calendar entry instead of an app people remember only sometimes.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Talk360 Solution</strong>
+            Recurring weekly or custom-day scheduling built into the reminder itself.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: The 3 Core Segments -->
+    <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="slide-category">Segmentation Synergy</div>
+        <h2 class="slide-title">Tailored Value Propositions for Every User Persona</h2>
+        <p class="slide-desc">
+          The HomeScreen card personalizes its copy based on the user segment supplied by the backend profile
+          (captured during Onboarding: <code>calling_home</code>, <code>calling_for_work</code>, <code>calling_when_it_counts</code>),
+          with a seamless default fallback for legacy users.
+        </p>
+      </div>
+      <div class="segments-grid">
+        <!-- Family -->
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-family">❤️ Family & Friends</div>
+          <div class="segment-img-thumb">
+            <img src="family_call_segment_1788454253162.jpg" alt="Family calling segment across timezones" />
+          </div>
+          <h3>"Never Miss Family Moments"</h3>
+          <p class="segment-problem">
+            Expats and diaspora calling parents, children, and spouses abroad. Sunday evening dinners, birthdays, and
+            weekly check-ins.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Tailored HomeScreen Prompt</strong>
+            "Stay connected with family — set recurring reminders for Sunday catch-ups across timezones."
+          </div>
+        </div>
+
+        <!-- Business -->
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-business">💼 Work & Business</div>
+          <div class="segment-img-thumb">
+            <img src="business_call_segment_1788454290933.jpg" alt="Business calling segment across offices" />
+          </div>
+          <h3>"Punctual Cross-Border Syncs"</h3>
+          <p class="segment-problem">
+            Founders, traders, consultants, and remote professionals needing a reliable, scheduled dial-in with
+            international clients and suppliers.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Tailored HomeScreen Prompt</strong>
+            "Never miss a client sync — bridge international timezones with scheduled reminders."
+          </div>
+        </div>
+
+        <!-- Embassies & Official -->
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-embassy">🏛️ Embassies & Critical</div>
+          <div class="segment-img-thumb">
+            <img src="embassy_call_segment_1788454354839.jpg" alt="Embassy and consulate calling segment" />
+          </div>
+          <h3>"Beat the Morning Queue"</h3>
+          <p class="segment-problem">
+            Immigrants, students, and travelers calling consulates, passport bureaus, airlines, and embassies with
+            strict morning call windows.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Tailored HomeScreen Prompt</strong>
+            "Call embassies right at opening — consulates have narrow call windows. Beat the queue."
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Interactive HomeScreen Prototype -->
+    <section class="slide" data-slide="4">
+      <div class="proto-layout">
+        <div>
+          <div class="slide-category">Interactive Experience</div>
+          <h2 class="slide-title" style="font-size: 2rem;">HomeScreen Card Mockup</h2>
+          <p class="slide-desc" style="font-size: 0.95rem; margin-bottom: 24px;">
+            The same card component renders differently per segment, and switches entirely once a call is scheduled. Try
+            the tabs below.
+          </p>
+
+          <div class="interactive-controls">
+            <button type="button" class="segment-tab-btn active" onclick="switchMock('family', this)">
+              <div class="tab-info">
+                <h4>👨‍👩‍👧 Family & Friends Segment</h4>
+                <p>Onboarding value: <code>calling_home</code></p>
+              </div>
+              <span class="tab-icon">❤️</span>
+            </button>
+
+            <button type="button" class="segment-tab-btn" onclick="switchMock('business', this)">
+              <div class="tab-info">
+                <h4>💼 Work & Business Segment</h4>
+                <p>Onboarding value: <code>calling_for_work</code></p>
+              </div>
+              <span class="tab-icon">💼</span>
+            </button>
+
+            <button type="button" class="segment-tab-btn" onclick="switchMock('embassy', this)">
+              <div class="tab-info">
+                <h4>🏛️ Embassies & Consulates</h4>
+                <p>Onboarding value: <code>calling_when_it_counts</code></p>
+              </div>
+              <span class="tab-icon">🏛️</span>
+            </button>
+
+            <button type="button" class="segment-tab-btn" onclick="switchMock('upcoming', this)">
+              <div class="tab-info">
+                <h4>⚡ Active Upcoming Call Cockpit</h4>
+                <p>State: a call is already scheduled</p>
+              </div>
+              <span class="tab-icon">🔔</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Phone Frame -->
+        <div>
+          <div class="phone-mockup">
+            <div class="phone-speaker"></div>
+            <div class="phone-screen">
+              <!-- App TopBar -->
+              <div class="app-topbar">
+                <div class="app-logo">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" fill="#00B8FF" />
+                    <path d="M7 12a5 5 0 0 1 10 0v2a2 2 0 0 1-4 0v-2" stroke="#06025C" stroke-width="2" />
+                  </svg>
+                  <span>talk360</span>
+                </div>
+                <div class="app-balance-pill">R 45.00</div>
+              </div>
+
+              <!-- Search Bar -->
+              <div class="app-search-bar">
+                <span>🔍</span>
+                <span>Enter name or number...</span>
+              </div>
+
+              <!-- DYNAMIC CARD MOCKUP -->
+              <div id="interactive-card" class="mock-card discovery">
+                <div class="mock-card-header">
+                  <span class="mock-pill mock-pill-cyan">Family & Friends</span>
+                  <span>⏰</span>
+                </div>
+                <h4 class="mock-card-title">Stay connected with family</h4>
+                <p class="mock-card-desc">Set recurring reminders for Sunday dinners and catch-ups across timezones.</p>
+                <div class="mock-card-cta-row">
+                  <button type="button" class="mock-btn">Schedule Family Call</button>
+                </div>
+              </div>
+
+              <!-- Secondary Mock Sections -->
+              <div
+                style="background: #FFF; border-radius: 12px; padding: 12px; border: 1px solid #E2E8F0; margin-bottom: 12px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #06025C; margin-bottom: 8px;">Recent Calls
+                </div>
+                <div
+                  style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #64748B;">
+                  <span>Mama (Nigeria)</span>
+                  <span style="color: #00B8FF; font-weight: 700;">Yesterday</span>
+                </div>
+              </div>
+
+              <div style="background: #FFF; border-radius: 12px; padding: 12px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #06025C; margin-bottom: 6px;">Calling Rates
+                </div>
+                <div style="font-size: 0.72rem; color: #64748B;">United Kingdom • R 0.45 / min</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Showcase Visuals & App Context -->
+    <section class="slide" data-slide="5">
+      <div class="slide-header">
+        <div class="slide-category">UI Integration & Polish</div>
+        <h2 class="slide-title">Native Android Compose Design</h2>
+        <p class="slide-desc">
+          Built on Talk360's existing design tokens (SpaceBlue80, Talk360Blue50, Sapphire) so the card reads as part of
+          the app, not a bolted-on feature.
+        </p>
+      </div>
+      <div style="display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 32px; align-items: center;">
+        <div class="image-frame"
+          style="height: 480px; max-height: calc(100vh - 240px); background: rgba(3, 1, 56, 0.6); display: flex; align-items: center; justify-content: center; padding: 12px;">
+          <img src="app_card_showcase_1788454393420.jpg" alt="Talk360 UI Showcase with Scheduled Call Card"
+            style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="segment-card" style="padding: 18px;">
+            <h3>🎯 1-Tap Execution</h3>
+            <p class="segment-problem" style="margin-bottom: 0;">
+              An upcoming reminder surfaces a direct "Call Now" action that dials straight in, bypassing extra
+              navigation.
+            </p>
+          </div>
+          <div class="segment-card" style="padding: 18px;">
+            <h3>🔄 Flexible Recurrence Engine</h3>
+            <p class="segment-problem" style="margin-bottom: 0;">
+              Supports <strong>Once</strong> (e.g. an embassy appointment), <strong>Daily</strong> (a morning check-in),
+              or <strong>Custom Days</strong> (every Saturday & Sunday).
+            </p>
+          </div>
+          <div class="segment-card" style="padding: 18px;">
+            <h3>🔋 On-Device Exact Alarms</h3>
+            <p class="segment-problem" style="margin-bottom: 0;">
+              Uses Android <code>AlarmManager.setExactAndAllowWhileIdle</code>, re-armed on boot, so reminders fire
+              through Doze mode without a background service.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: Business Case -->
+    <section class="slide" data-slide="6">
+      <div class="slide-header">
+        <div class="slide-category">Business Case</div>
+        <h2 class="slide-title">The Hypothesis We Want to Test</h2>
+        <p class="slide-desc">
+          We don't have production numbers yet — that's exactly what the A/B rollout proposed on the next slide is for.
+          Here is the mechanism we're betting on, and how each part gets measured.
+        </p>
+      </div>
+      <div class="metrics-grid-4">
+        <div class="metric-card-box">
+          <h3 class="label">Higher Engagement & Call Volume</h3>
+          <p>Recurring reminders turn sporadic calls into habitual weekly rituals (e.g. Sunday family syncs), driving higher total calls and talk-time minutes.</p>
+        </div>
+        <div class="metric-card-box">
+          <h3 class="label">Shorter Call Gaps (Intent to Action)</h3>
+          <p>Compresses the friction gap between deciding to call and placing the call, preventing ad-hoc delays from turning into account dormancy.</p>
+        </div>
+        <div class="metric-card-box">
+          <h3 class="label">Higher-Intent Notifications</h3>
+          <p>Reminders tied to a call the user scheduled themselves out-convert generic marketing pushes, driving direct action with zero user annoyance.</p>
+        </div>
+        <div class="metric-card-box">
+          <h3 class="label">On-Time Dialing, Narrow Windows</h3>
+          <p>Exact-alarm precision ensures callers connect the minute restricted operational windows open (e.g. embassies and visa queues).</p>
+        </div>
+      </div>
+      <div class="tech-table-wrap">
+        <table class="tech-table">
+          <thead>
+            <tr>
+              <th>Hypothesis</th>
+              <th>How We'll Measure It</th>
+              <th>Segment Most Affected</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Higher engagement & call volume</strong></td>
+              <td>Total calls placed & talk-time minutes per active user/month (scheduled vs. control cohort)</td>
+              <td>All segments</td>
+            </tr>
+            <tr>
+              <td><strong>Shorter call gaps (intent to action)</strong></td>
+              <td>Median days-between-calls and D30/D60 active retention for scheduled users vs. control</td>
+              <td>Family & Business</td>
+            </tr>
+            <tr>
+              <td><strong>Higher-intent notifications</strong></td>
+              <td>Notification open rate & direct dial CTR on <code>scheduled_call_reminder_tapped</code> vs. promo pushes</td>
+              <td>All segments</td>
+            </tr>
+            <tr>
+              <td><strong>On-time dialing (narrow windows)</strong></td>
+              <td>Time elapsed between reminder alarm fire and <code>scheduled_call_called_now</code></td>
+              <td>Embassies & Critical</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: Technical POC Validation -->
+    <section class="slide" data-slide="7">
+      <div class="slide-header" style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div class="slide-category" style="margin-bottom: 0;">Technical Validation</div>
+          <span style="background: rgba(0, 184, 255, 0.15); border: 1px solid var(--talk-cyan); color: var(--talk-cyan); padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+            🚀 Local-First Architecture • Zero New Backend Services
+          </span>
+        </div>
+        <h2 class="slide-title">POC Learnings: Local-First Engine, Zero New Backend Services</h2>
+        <p class="slide-desc">
+          The scheduling engine, alarms, and persistence run 100% locally on-device. The only backend touchpoint is consuming the existing user segment from the profile — with a built-in client fallback so backend timing never blocks rollout.
+        </p>
+      </div>
+      <div class="segments-grid">
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-business">KMP / SQLDelight</div>
+          <h3>Local-First Persistence</h3>
+          <p class="segment-problem">
+            Implemented in <code>shared/src/commonMain/sqldelight/</code> (<code>3.sqm</code>). All schedule data stays on-device. Zero scheduling microservices, server cron jobs, or database migrations needed.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Graceful Segment Fallback</strong>
+            Reads <code>user_segment</code> from profile payload. If null or pending, defaults seamlessly to a general prompt.
+          </div>
+        </div>
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-embassy">Exact Alarms</div>
+          <h3>AlarmManager & Boot Persistence</h3>
+          <p class="segment-problem">
+            Uses <code>ExactAlarmPermissionManager</code> with receivers. Alarms re-arm on reboot and fire through Doze mode completely on-device. Zero push-server traffic or cloud cron overhead.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Battery & Doze Friendly</strong>
+            No persistent background service, no wake-lock held, and 0 network requests to trigger alerts.
+          </div>
+        </div>
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-family">Jetpack Compose</div>
+          <h3>Standard Talk360 Architecture</h3>
+          <p class="segment-problem">
+            <code>ScheduledCallCard.kt</code> plugs straight into <code>HomeScreen.kt</code>'s LazyColumn alongside existing cards using standard MVI and Koin DI.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Zero Engineering Blocker</strong>
+            Follows existing patterns and theme tokens throughout. Ready for staged A/B release testing immediately.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Phased Product Roadmap -->
+    <section class="slide" data-slide="8">
+      <div class="slide-header">
+        <div class="slide-category">Execution Plan</div>
+        <h2 class="slide-title">Product Roadmap & Phased Rollout</h2>
+        <p class="slide-desc">
+          A staged rollout to validate the hypotheses before committing further platform investment.
+        </p>
+      </div>
+      <div class="roadmap-cols">
+        <div class="roadmap-phase">
+          <span class="phase-badge phase-1">Phase 1: Android MVP (Current)</span>
+          <h3>HomeScreen Card & Core Engine</h3>
+          <ul>
+            <li>Personalized HomeScreen discovery card mapped to the Onboarding segment.</li>
+            <li>Active upcoming call cockpit with 1-tap dial.</li>
+            <li>Create/Edit flow with recurrence (Once, Daily, Custom days).</li>
+            <li>On-device alarm notifications with a "Call Now" action.</li>
+          </ul>
+        </div>
+        <div class="roadmap-phase">
+          <span class="phase-badge phase-2">Phase 2: Parity & Calendar Sync</span>
+          <h3>iOS Release & Calendar Bridges</h3>
+          <ul>
+            <li>Port the UI to Talk360 iOS using the existing KMP shared domain models.</li>
+            <li>"Add to Google / Apple Calendar" on save.</li>
+            <li>Pre-call balance warning ("You have 8 minutes left — top up before your call").</li>
+            <li>Timezone visualizer in the contact picker.</li>
+          </ul>
+        </div>
+        <div class="roadmap-phase">
+          <span class="phase-badge phase-3">Phase 3: Smart Predictive Cadence</span>
+          <h3>Intelligent Scheduling</h3>
+          <ul>
+            <li>Heuristic prompt: "You usually call David on Saturdays at 6 PM. Schedule a reminder?"</li>
+            <li>Embassy directory integration with automatic opening-hour presets.</li>
+            <li>Shared scheduling links via WhatsApp for loved ones.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9: Recommendation & Next Steps -->
+    <section class="slide" data-slide="9">
+      <div class="slide-header">
+        <div class="slide-category">Decision Required</div>
+        <h2 class="slide-title">Recommendation for Product Department</h2>
+        <p class="slide-desc">
+          The POC has validated technical feasibility and the segment-aware UX. We recommend proceeding with an A/B
+          rollout in release TBD to test the hypotheses from the previous slide.
+        </p>
+      </div>
+      <div class="segments-grid">
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-family">1. Staged Rollout</div>
+          <h3>Launch a 20% A/B Test</h3>
+          <p class="segment-problem">
+            Test Variant A (HomeScreen Scheduled Call card with segment-aware copy) against Control (standard
+            HomeScreen) on 20% of active users.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Key Metrics to Track</strong>
+            Card CTR, schedule-creation rate, D14/D30 retention.
+          </div>
+        </div>
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-business">2. Copy & Localization</div>
+          <h3>Finalize Multilingual Copy</h3>
+          <p class="segment-problem">
+            Strings are already structured in <code>strings.xml</code>; review translations in Dutch, Spanish, French,
+            and German ahead of rollout.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Action Item</strong>
+            Product design review for tone across diaspora communities.
+          </div>
+        </div>
+        <div class="segment-card">
+          <div class="segment-badge-pill badge-embassy">3. Analytics & Attribution</div>
+          <h3>Event Tracking Integration</h3>
+          <p class="segment-problem">
+            Instrument <code>scheduled_call_created</code>, <code>scheduled_call_reminder_tapped</code>, and
+            <code>scheduled_call_called_now</code>, each tagged with segment, before rollout begins.
+          </p>
+          <div class="segment-solution-box">
+            <strong>Action Item</strong>
+            Wire these into the funnel used to evaluate the test.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Speaker Notes Drawer (VISIBLE BY DEFAULT) -->
+  <div id="notes-drawer" class="notes-drawer">
+    <div class="notes-header">
+      <div class="notes-header-title">
+        <span class="notes-badge">SLIDE <span id="notes-slide-num">1</span> OF 9</span>
+        <h4>Speaker Talking Points</h4>
+      </div>
+      <button type="button" onclick="toggleNotes()" title="Minimize Notes"
+        style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:#FFF; cursor:pointer; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:6px; transition:all 0.2s; font-family:inherit;">✕
+        Hide</button>
+    </div>
+    <div id="notes-content" class="notes-content">
+      Loading speaker notes...
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <footer>
+    <div class="nav-buttons">
+      <button type="button" class="btn-nav" onclick="prevSlide()">← Previous</button>
+      <button type="button" class="btn-nav primary" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <!-- Progress Dots -->
+    <div class="slide-progress" id="progress-container"></div>
+
+    <div class="nav-buttons">
+      <button type="button" id="btn-toggle-notes" class="btn-nav active-notes" onclick="toggleNotes()">📝 Notes: Visible
+        (N)</button>
+      <button type="button" class="btn-nav" onclick="toggleFullScreen()">⛶ Fullscreen (F)</button>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      let currentSlide = 1;
+      const totalSlides = 9;
+      const slides = document.querySelectorAll('.slide');
+      const progressContainer = document.getElementById('progress-container');
+      const notesDrawer = document.getElementById('notes-drawer');
+      const notesContent = document.getElementById('notes-content');
+      const notesSlideNum = document.getElementById('notes-slide-num');
+      const btnToggleNotes = document.getElementById('btn-toggle-notes');
+      let isNotesVisible = true;
+
+      const slideNotes = {
+        1: `<strong>🎯 Executive Objective:</strong> Frame Scheduled Calls as a segment-driven habit engine that connects Onboarding segmentation directly to retention and credit consumption on the HomeScreen — not just an alarm utility.<br/><br/><strong>💡 Key Pitch:</strong> Move users from ad-hoc calling to structured weekly cadences across timezones.`,
+        2: `<strong>🎯 The Strategic Gap:</strong> The "Dormancy Leak."<br/><br/><strong>🗣️ Talking Points:</strong><br/>• International calling has real mental overhead — timezone math, fear of calling at the wrong hour.<br/>• Embassy morning windows cause real anxiety if missed.<br/>• A postponed call is often a forgotten call — that's what drains balances and creates dormant accounts.`,
+        3: `<strong>🎯 Segmentation Synergy:</strong> This maps directly onto the Onboarding segment already captured in code (<code>CallSegmentationConstants</code>).<br/><br/><strong>🗣️ Talking Points:</strong><br/>• <strong>Family & Friends (calling_home):</strong> emotional connection, weekly check-ins.<br/>• <strong>Work & Business (calling_for_work):</strong> professional reliability across timezones.<br/>• <strong>Embassies & Consulates (calling_when_it_counts):</strong> time-critical, queue-beating reminders.`,
+        4: `<strong>🎯 Interactive Demo:</strong> Invite the Product Department to click each tab.<br/><br/><strong>🗣️ Talking Points:</strong><br/>• Each segment personalizes the same card's copy and CTA — one component, a different <code>userSegment</code> value.<br/>• "Active Upcoming Call" shows the other state: once a call is scheduled, the card becomes a 1-tap dial cockpit.`,
+        5: `<strong>🎯 Native Android Compose:</strong> Built on Talk360's existing design tokens, not a one-off component.<br/><br/><strong>🗣️ Talking Points:</strong><br/>• Uses the same Sapphire / SpaceBlue80 / Talk360Blue50 tokens as the rest of the app.<br/>• Recurrence engine already supports Once, Daily, and Custom weekdays.<br/>• On-device exact alarms fire through Android Doze mode with no background service.`,
+        6: `<strong>🎯 Business Case: The 4 Core Hypotheses.</strong><br/><br/><strong>🗣️ Talking Points:</strong><br/>• Be upfront: we don't have production numbers yet — that's why we're proposing a 20% A/B test.<br/>• <strong>Higher Engagement:</strong> Shifting ad-hoc calling into habitual weekly rituals to lift total calls placed and talk time.<br/>• <strong>Shorter Call Gaps:</strong> Compresses the lag between deciding to call and dialing, directly combating the dormancy leak.<br/>• <strong>High-Intent Push:</strong> Reminders self-scheduled by users will dramatically out-convert generic broadcast promotional pushes.<br/>• <strong>On-Time Dialing:</strong> Exact alarms guarantee callers hit restricted morning windows for embassies and consulates.`,
+        7: `<strong>🎯 Technical Validation:</strong> Local-First Engine, Zero New Backend Services.<br/><br/><strong>🗣️ Talking Points:</strong><br/>• <strong>Clear Architecture Boundary:</strong> The entire scheduling engine, persistence (SQLDelight), and exact alarms (AlarmManager) are 100% on-device. Zero new backend services, cron queues, or database migrations needed.<br/>• <strong>Backend Data Touchpoint:</strong> The only backend interaction is reading the <code>user_segment</code> string from the existing user profile API (originating from Onboarding).<br/>• <strong>Non-Blocking Fallback:</strong> If the backend field is pending or null (for legacy users who onboarded earlier), the client defaults seamlessly to a general prompt — meaning rollout is never blocked by backend work.<br/>• Shared KMP architecture is directly reusable for iOS.`,
+        8: `<strong>🎯 Phased Roadmap:</strong> Execution plan.<br/><br/><strong>🗣️ Talking Points:</strong><br/>• Phase 1: Android MVP — the POC being shown today.<br/>• Phase 2: iOS parity plus Google/Apple Calendar integration.<br/>• Phase 3: heuristic call-time suggestions from call history.`,
+        9: `<strong>🎯 Executive Recommendation:</strong> Next steps.<br/><br/><strong>🗣️ The 3 Asks:</strong><br/>1. Approve a 20% staged A/B rollout in release TBD to test the hypotheses from slide 6.<br/>2. Sign off on localized copy for European and African markets.<br/>3. Instrument the Mixpanel funnel for schedule creation and dial-out before rollout.`,
+      };
+
+      for (let i = 1; i <= totalSlides; i += 1) {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = `progress-dot${i === 1 ? ' active' : ''}`;
+        dot.setAttribute('aria-label', `Go to slide ${i}`);
+        dot.onclick = () => goToSlide(i);
+        progressContainer.appendChild(dot);
+      }
+
+      function updateSlide() {
+        slides.forEach((slide) => {
+          const slideNum = parseInt(slide.getAttribute('data-slide'), 10);
+          slide.classList.remove('active', 'prev');
+          if (slideNum === currentSlide) {
+            slide.classList.add('active');
+          } else if (slideNum < currentSlide) {
+            slide.classList.add('prev');
+          }
+        });
+
+        notesSlideNum.innerText = currentSlide;
+        notesContent.innerHTML = slideNotes[currentSlide] || '';
+
+        document.querySelectorAll('.progress-dot').forEach((dot, idx) => {
+          dot.classList.toggle('active', idx + 1 === currentSlide);
+        });
+      }
+
+      function nextSlide() {
+        if (currentSlide < totalSlides) {
+          currentSlide += 1;
+          updateSlide();
+        }
+      }
+
+      function prevSlide() {
+        if (currentSlide > 1) {
+          currentSlide -= 1;
+          updateSlide();
+        }
+      }
+
+      function goToSlide(n) {
+        currentSlide = n;
+        updateSlide();
+      }
+
+      function toggleNotes() {
+        isNotesVisible = !isNotesVisible;
+        notesDrawer.classList.toggle('minimized', !isNotesVisible);
+        btnToggleNotes.textContent = isNotesVisible ? '📝 Notes: Visible (N)' : '📝 Notes: Hidden (N)';
+        btnToggleNotes.classList.toggle('active-notes', isNotesVisible);
+      }
+
+      function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => { });
+        } else {
+          document.exitFullscreen().catch(() => { });
+        }
+      }
+
+      const SEGMENT_CARDS = {
+        family: {
+          pill: 'Family & Friends',
+          icon: '❤️',
+          title: 'Stay connected with family',
+          desc: 'Set recurring reminders for Sunday catch-ups and birthdays across timezones.',
+          cta: 'Schedule Family Call',
+        },
+        business: {
+          pill: 'Work & Business',
+          icon: '💼',
+          title: 'Never miss a client sync',
+          desc: 'Bridge international timezones with a scheduled reminder for every recurring call.',
+          cta: 'Schedule Work Call',
+        },
+        embassy: {
+          pill: 'Embassies & Critical',
+          icon: '🏛️',
+          title: 'Call embassies right at opening',
+          desc: 'Consulates keep narrow morning windows — get an exact-alarm reminder before they open.',
+          cta: 'Schedule Embassy Call',
+        },
+      };
+
+      function renderDiscoveryCard(data) {
+        const card = document.getElementById('interactive-card');
+        card.className = 'mock-card discovery';
+        card.innerHTML = `
+        <div class="mock-card-header">
+          <span class="mock-pill mock-pill-cyan">${data.pill}</span>
+          <span>${data.icon}</span>
+        </div>
+        <h4 class="mock-card-title">${data.title}</h4>
+        <p class="mock-card-desc">${data.desc}</p>
+        <div class="mock-card-cta-row">
+          <button type="button" class="mock-btn">${data.cta}</button>
+        </div>
+      `;
+      }
+
+      function renderUpcomingCard() {
+        const card = document.getElementById('interactive-card');
+        card.className = 'mock-card upcoming';
+        card.innerHTML = `
+        <div class="mock-card-header">
+          <span class="mock-pill mock-pill-upcoming">Upcoming Call</span>
+          <span>🔔</span>
+        </div>
+        <div class="upcoming-row">
+          <div class="upcoming-avatar">M</div>
+          <div class="upcoming-details">
+            <h5>Mama (Nigeria)</h5>
+            <p>Today, 7:00 PM · Recurring weekly</p>
+          </div>
+        </div>
+        <div class="mock-card-cta-row" style="margin-top: 12px;">
+          <button type="button" class="mock-btn">Call Now</button>
+        </div>
+      `;
+      }
+
+      window.switchMock = function switchMock(type, btnEl) {
+        document.querySelectorAll('.segment-tab-btn').forEach((btn) => btn.classList.remove('active'));
+        btnEl.classList.add('active');
+
+        if (type === 'upcoming') {
+          renderUpcomingCard();
+        } else {
+          renderDiscoveryCard(SEGMENT_CARDS[type]);
+        }
+      };
+
+      window.nextSlide = nextSlide;
+      window.prevSlide = prevSlide;
+      window.toggleNotes = toggleNotes;
+      window.toggleFullScreen = toggleFullScreen;
+
+      document.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (e.key === 'ArrowRight') nextSlide();
+        if (e.key === 'ArrowLeft') prevSlide();
+        if (e.key === 'n' || e.key === 'N') toggleNotes();
+        if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+      });
+
+      updateSlide();
+    })();
+  </script>
+
+</body>
+
+</html>
